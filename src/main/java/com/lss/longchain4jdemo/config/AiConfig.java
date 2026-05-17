@@ -10,6 +10,7 @@ import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.service.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 
 @Configuration
 public class AiConfig {
@@ -105,6 +106,31 @@ public class AiConfig {
                                ToolsService toolsService) {
         ChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(10);
         return AiServices.builder(Assistant2.class)
+                .chatLanguageModel(qwenChatModel)
+                .streamingChatLanguageModel(qwenStreamingChatModel)
+                .tools(toolsService)
+                .chatMemory(chatMemory)
+                .build();
+    }
+
+    /**
+     * 航空客服 Assistant 接口
+     * 专门处理机票查询、改签、取消等业务
+     */
+    public interface AirlineAssistant {
+        @SystemMessage(fromResource = "system-prompt.txt")
+        String chat(String message);
+
+        @SystemMessage(fromResource = "system-prompt.txt")
+        TokenStream stream(@UserMessage String message, @V("current_date") String currentDate);
+    }
+
+    @Bean
+    public AirlineAssistant airlineAssistant(ChatLanguageModel qwenChatModel,
+                                            StreamingChatLanguageModel qwenStreamingChatModel,
+                                            ToolsService toolsService) {
+        ChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(10);
+        return AiServices.builder(AirlineAssistant.class)
                 .chatLanguageModel(qwenChatModel)
                 .streamingChatLanguageModel(qwenStreamingChatModel)
                 .tools(toolsService)
